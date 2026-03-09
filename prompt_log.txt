@@ -4,3 +4,276 @@
 Prompt #1: {}
 Response #1: {}
 --------------------------------------------------
+Yes — there are several ambiguities and places that would benefit from clarification. Your specification is mostly good, but some rules conflict with each other or leave edge cases unclear. I’ll point out the main issues and suggest what might need clarification.
+
+1. Capacity Constraint Conflict
+
+You wrote:
+
+Inputs: “Capacity: Will take an integer equal to or greater than zero”
+
+Functional Requirements: “The system shall accept a fixed integer capacity greater than zero”
+
+Tie-breaking rules: “The system shall not allow any registration nor waitlist if the system's given capacity is equal to 0.”
+
+Ambiguity
+
+These statements contradict each other.
+
+Possible interpretations:
+
+Capacity must be > 0
+
+Capacity may be 0 but the system behaves differently
+
+Clarification Needed
+
+Specify one of these clearly:
+
+Option A:
+
+Capacity must be an integer ≥ 1
+
+Option B:
+
+Capacity may be 0, in which case all users are waitlisted.
+
+Option C:
+
+Capacity may be 0, and no registrations or waitlists are allowed.
+
+2. Cancellation Behavior is Underspecified
+
+You say:
+
+cancel(): returns None
+
+But you do not specify:
+
+What happens if the user was never registered or waitlisted
+
+Whether cancel() raises an exception
+
+Whether it silently does nothing
+
+Clarification Needed
+
+Example clarification:
+
+cancel() raises UserNotFound if the user is neither registered nor waitlisted.
+
+3. What Happens if Waitlisted User Cancels?
+
+You mention:
+
+The system shall move down all higher positions by one, once a waitlisted User cancels.
+
+But there is ambiguity:
+
+Does this mean positions shift immediately?
+
+Or only when queried?
+
+Clarification Needed
+
+Example:
+
+Waitlist positions must be updated immediately after cancellation.
+
+4. Simultaneous Operations
+
+You mention:
+
+simultaneous operations one by one prioritizing cancellations before promotions before registrations
+
+Ambiguity
+
+The system likely processes one operation at a time, so “simultaneous operations” is unclear.
+
+Questions:
+
+Can operations truly occur simultaneously?
+
+Or is the system single-threaded?
+
+Clarification Needed
+
+Specify:
+
+All operations are processed sequentially in the order received.
+
+OR
+
+When multiple operations occur at the same timestamp, they are processed in the following priority order.
+
+5. Duplicate Constraint in Your List
+
+You wrote the same constraint twice:
+
+promotions occur deterministically under identical operation sequences.
+
+This is likely accidental duplication.
+
+6. Waitlist Position Definition
+
+You say:
+
+UserStatus.position: integer ≥1 if waitlisted, otherwise None
+
+Ambiguity
+
+Do positions change dynamically?
+
+Example scenario:
+
+Capacity = 2
+
+Users register:
+
+A -> registered
+B -> registered
+C -> waitlist position 1
+D -> waitlist position 2
+
+If B cancels:
+
+Does C become:
+
+Registered and removed from queue?
+
+Registered but keep position history?
+
+You partly answered this:
+
+system shall not keep track of position once promoted
+
+But this should also be stated explicitly in the status() output definition.
+
+7. Registration After Cancellation
+
+You wrote:
+
+treat a cancelled user as newly registered
+
+Ambiguity
+
+Does this apply to both:
+
+registered → cancel → register
+
+waitlisted → cancel → register
+
+Clarify:
+
+A user who cancels loses all previous priority.
+
+8. Duplicate Registration Definition
+
+You wrote:
+
+reject registration if user already registered or waitlisted
+
+Ambiguity
+
+What if the user calls:
+
+register()
+register()
+
+Do you:
+
+throw exception
+
+ignore
+
+return existing state
+
+You mentioned:
+
+DuplicateRequest exception
+
+But clarify explicitly:
+
+register() raises DuplicateRequest if the user already exists in the system.
+
+9. Negative Requirement About Capacity
+
+You wrote:
+
+The system must not allow capacity to not be full while waitlist isn't empty.
+
+This is correct but slightly unclear.
+
+Better wording:
+
+The waitlist must be empty whenever registered users are fewer than capacity.
+
+10. Tie-Breaking Rules Are Overly Complex
+
+You wrote a very long rule:
+
+prioritizing cancellations before promotions before registrations...
+
+Ambiguity
+
+In practice, promotion should happen immediately after cancellation, not as a separate event.
+
+Example simplification:
+
+Process cancellation.
+
+If registered user cancels and waitlist not empty → promote first waitlisted user.
+
+Process registration requests normally.
+
+11. Missing Clarification: User Identity
+
+You wrote:
+
+user_id is a unique string
+
+Ambiguity
+
+Unique globally or per event?
+
+Clarify:
+
+user_id uniquely identifies a user within the event.
+
+12. Missing Edge Case: Cancel After Promotion
+
+You wrote:
+
+cancel a promoted waitlisted User if they cancel
+
+This sentence is confusing.
+
+Likely meaning:
+
+If a user promoted from the waitlist cancels after promotion, the next waitlisted user is promoted.
+
+Clarify that.
+
+Summary of Main Ambiguities
+
+The most important issues to fix are:
+
+Capacity definition (≥0 vs >0)
+
+Behavior of cancel() for non-existing users
+
+Handling simultaneous operations
+
+Waitlist position updates
+
+Re-registration rules after cancellation
+
+Duplicate request behavior
+
+Promotion timing
+
+User ID uniqueness scope
+
+✅ Overall: Your specification is solid for a class assignment, but tightening these points would make it much more precise and implementable.
+
+If you'd like, I can also show you the cleaned-up “perfect version” of this specification (the way professors usually expect it). It would take your answers and rewrite them into a fully consistent spec.
