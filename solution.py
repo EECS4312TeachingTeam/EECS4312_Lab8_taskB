@@ -72,8 +72,9 @@ class EventRegistration:
         Args:
             capacity: maximum number of registered users (>= 0)
         """
-        # TODO: Initialize internal data structures
-        raise NotImplementedError("EventRegistration.__init__ not implemented yet")
+        self.registered = []
+        self.waitlist = []
+        self.capacity = capacity
 
     def register(self, user_id: str) -> UserStatus:
         """
@@ -84,8 +85,14 @@ class EventRegistration:
         Raises:
             DuplicateRequest if user already exists (registered or waitlisted)
         """
-        # TODO: Implement per lab handout
-        raise NotImplementedError("register not implemented yet")
+        if user_id in self.registered or user_id in self.waitlist:
+            raise DuplicateRequest()
+        if len(self.registered) < self.capacity:
+            self.registered.append(user_id)
+            return UserStatus('registered')
+        self.waitlist.append(user_id)
+        return UserStatus('waitlisted', len(self.waitlist))
+        
 
     def cancel(self, user_id: str) -> None:
         """
@@ -97,8 +104,13 @@ class EventRegistration:
         Raises:
             NotFound (if required by handout)
         """
-        # TODO: Implement per lab handout
-        raise NotImplementedError("cancel not implemented yet")
+        if user_id in self.registered:
+            self.registered.remove(user_id)
+            if len(self.waitlist) > 0:
+                self.registered.append(self.waitlist[0])
+                self.waitlist.pop(0)
+        elif user_id in self.waitlist:
+            self.waitlist.remove(user_id)
 
     def status(self, user_id: str) -> UserStatus:
         """
@@ -107,8 +119,11 @@ class EventRegistration:
           - waitlisted with position (1-based)
           - none
         """
-        # TODO: Implement per lab handout
-        raise NotImplementedError("status not implemented yet")
+        if user_id in self.registered:
+            return UserStatus('registered')
+        if user_id in self.waitlist:
+            return UserStatus('waitlisted', self.waitlist.index(user_id))
+        return UserStatus('none')
 
     def snapshot(self) -> dict:
         """
